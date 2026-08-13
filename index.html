@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>चालकांसाठी व्यावहारिक मराठी (Practical Marathi)</title>
+  <style>
+    /* Base Styles */
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-sub: #475569;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    header p {
+      color: var(--text-sub);
+      margin-top: 0;
+      font-size: 0.95rem;
+    }
+
+    /* Category Filters */
+    .filters {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .filter-btn {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Card Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Individual Phrase Card */
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .marathi-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .english-text {
+      font-size: 1rem;
+      color: var(--text-sub);
+      margin-bottom: 15px;
+    }
+
+    .play-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .play-btn:hover {
+      background: var(--primary-hover);
+    }
+    
+    .play-btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>महाराष्ट्र माझा... मराठी माझी बोली भाषा..!</h1>
+    <p>Interactive Practical Marathi Guide for Drivers</p>
+  </header>
+
+  <div class="filters" id="filter-container">
+    <button class="filter-btn active" data-category="all">All</button>
+    <button class="filter-btn" data-category="greetings">Greetings</button>
+    <button class="filter-btn" data-category="directions">Directions</button>
+    <button class="filter-btn" data-category="fares">Fares & Payment</button>
+  </div>
+
+  <div class="grid" id="phrase-grid">
+    <!-- Cards will be injected here by JavaScript -->
+  </div>
+
+  <script>
+    // Phrase Database
+    const phrases = [
+      { marathi: "नमस्कार", english: "Hello / Greetings", category: "greetings" },
+      { marathi: "कुठे जायचंय?", english: "Where do you want to go?", category: "greetings" },
+      { marathi: "तुमचा प्रवास सुरक्षित होवो", english: "Have a safe journey", category: "greetings" },
+      { marathi: "उजव्या बाजूला घ्या", english: "Take a right turn", category: "directions" },
+      { marathi: "डाव्या बाजूला घ्या", english: "Take a left turn", category: "directions" },
+      { marathi: "सरळ जा", english: "Go straight", category: "directions" },
+      { marathi: "इथेच थांबवा", english: "Stop right here", category: "directions" },
+      { marathi: "पुढे ट्रॅफिक आहे", english: "There is traffic ahead", category: "directions" },
+      { marathi: "मीटरप्रमाणे चला", english: "Please run by the meter", category: "fares" },
+      { marathi: "सुट्टे पैसे आहेत का?", english: "Do you have exact change?", category: "fares" },
+      { marathi: "युपीआय (UPI) चालेल का?", english: "Do you accept UPI/online payment?", category: "fares" }
+    ];
+
+    const grid = document.getElementById('phrase-grid');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+
+    // Function to render cards to the screen
+    function renderCards(filter = "all") {
+      grid.innerHTML = ""; // Clear existing cards
+      
+      const filteredPhrases = filter === "all" 
+        ? phrases 
+        : phrases.filter(p => p.category === filter);
+
+      filteredPhrases.forEach(phrase => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div>
+            <div class="marathi-text">${phrase.marathi}</div>
+            <div class="english-text">${phrase.english}</div>
+          </div>
+          <button class="play-btn" onclick="speakMarathi('${phrase.marathi}')">
+            🔊 Listen
+          </button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Filter Button Logic
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Remove active class from all
+        filterBtns.forEach(b => b.classList.remove('active'));
+        // Add active class to clicked
+        e.target.classList.add('active');
+        // Render filtered cards
+        renderCards(e.target.dataset.category);
+      });
+    });
+
+    // Text-to-Speech Engine
+    function speakMarathi(text) {
+      if ('speechSynthesis' in window) {
+        // Cancel any currently playing speech to avoid overlapping
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Using 'hi-IN' (Hindi) as a reliable Devanagari fallback
+        // since 'mr-IN' is missing on many default system voice packs.
+        utterance.lang = 'hi-IN'; 
+        utterance.rate = 0.85; // Slightly slower for better clarity for learners
+        
+        window.speechSynthesis.speak(utterance);
+      } else {
+        alert("Sorry, Text-to-speech is not supported in your browser.");
+      }
+    }
+
+    // Initial render of all cards on page load
+    renderCards();
+  </script>
+</body>
+</html>
