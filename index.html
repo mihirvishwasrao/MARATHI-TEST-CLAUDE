@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>मराठी बोलूया — Driver Marathi</title>
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --ink:#111827; --muted:#6b7280;
+  --primary:#ff6b35; --primary2:#e85a24; --line:#e5e7eb;
+  --soft:#fff1eb; --green:#16803c; --shadow:0 8px 30px rgba(17,24,39,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Noto Sans Devanagari",sans-serif}
+button,input{font:inherit}
+.app{max-width:760px;margin:auto;min-height:100vh;padding-bottom:28px}
+header{background:linear-gradient(135deg,#111827,#1f2937);color:white;padding:22px 18px 20px;border-radius:0 0 24px 24px;box-shadow:var(--shadow)}
+.brand{font-size:24px;font-weight:800;letter-spacing:-.4px}
+.sub{font-size:14px;color:#d1d5db;margin-top:5px}
+.toolbar{display:flex;gap:9px;margin-top:18px}
+.search{flex:1;border:0;border-radius:14px;padding:13px 14px;background:#fff;color:#111827;outline:none}
+.smallbtn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:14px;padding:0 14px;cursor:pointer}
+main{padding:18px}
+.notice{background:var(--soft);border:1px solid #ffd7c8;border-radius:16px;padding:12px 14px;font-size:13px;color:#7c2d12;margin-bottom:16px}
+.categories{display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:none}
+.categories::-webkit-scrollbar{display:none}
+.cat{white-space:nowrap;border:1px solid var(--line);background:white;color:#374151;border-radius:999px;padding:9px 14px;cursor:pointer}
+.cat.active{background:var(--primary);border-color:var(--primary);color:white}
+.count{font-size:13px;color:var(--muted);margin:8px 2px 12px}
+.phrase{width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px 16px;margin:0 0 11px;box-shadow:0 4px 18px rgba(17,24,39,.04);cursor:pointer;display:flex;align-items:center;gap:14px}
+.phrase:active{transform:scale(.99)}
+.hindi{font-size:18px;font-weight:700;line-height:1.35;flex:1}
+.meta{font-size:12px;color:var(--muted);margin-top:5px}
+.speak{width:46px;height:46px;min-width:46px;border-radius:50%;border:0;background:var(--primary);color:white;font-size:21px;cursor:pointer}
+.empty{text-align:center;padding:40px 15px;color:var(--muted)}
+footer{text-align:center;color:#9ca3af;font-size:12px;padding:12px 18px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:10}
+.overlay.show{display:flex}
+.panel{width:min(700px,100%);background:#fff;border-radius:24px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.panel h2{margin:0 0 7px;font-size:21px}
+.panel .mr{font-size:25px;font-weight:700;line-height:1.4;margin:18px 0}
+.panel .meaning{color:var(--muted);line-height:1.5}
+.panel-actions{display:flex;gap:9px;margin-top:18px}
+.action{flex:1;border:0;border-radius:14px;padding:13px;cursor:pointer}
+.primary{background:var(--primary);color:#fff}.secondary{background:#f3f4f6;color:#111827}
+.settings{font-size:13px;color:var(--muted);margin-top:12px}
+@media(min-width:700px){header{margin-top:16px}.app{padding-bottom:40px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">मराठी बोलूया</div>
+  <div class="sub">ड्रायव्हर्स के लिए आसान Marathi बोलचाल</div>
+  <div class="toolbar">
+    <input id="search" class="search" placeholder="वाक्य खोजें…">
+    <button id="refresh" class="smallbtn" title="Refresh">↻</button>
+  </div>
+</header>
+
+<main>
+  <div id="notice" class="notice">वाक्य लोड हो रहे हैं…</div>
+  <div id="categories" class="categories"></div>
+  <div id="count" class="count"></div>
+  <section id="phrases"></section>
+</main>
+<footer>Hindi में पढ़ें • Tap करें • Marathi सुनें</footer>
+</div>
+
+<div id="overlay" class="overlay">
+  <div class="panel">
+    <h2 id="panelHindi"></h2>
+    <div id="panelMr" class="mr"></div>
+    <div id="panelMeaning" class="meaning"></div>
+    <div class="panel-actions">
+      <button id="speakBtn" class="action primary">🔊 Marathi सुनें</button>
+      <button id="closeBtn" class="action secondary">बंद करें</button>
+    </div>
+    <div id="voiceInfo" class="settings"></div>
+  </div>
+</div>
+
+<script>
+/*
+  GOOGLE SHEET SETUP
+  1. Create a Google Sheet.
+  2. Put these headers in row 1:
+     category | hindi | marathi | meaning | active | order
+  3. Publish the sheet: File → Share → Publish to web → choose the sheet/tab → CSV.
+  4. Copy the published CSV URL and paste it into SHEET_CSV_URL below.
+*/
+const SHEET_CSV_URL = "PASTE_YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE";
+
+const SAMPLE_DATA = [
+  {category:"अभिवादन",hindi:"नमस्ते",marathi:"नमस्कार",meaning:"नमस्ते / Hello",active:true,order:1},
+  {category:"अभिवादन",hindi:"कैसे हैं?",marathi:"तुम्ही कसे आहात?",meaning:"आप कैसे हैं?",active:true,order:2},
+  {category:"पिकअप",hindi:"आप कहाँ खड़े हैं?",marathi:"तुम्ही कुठे उभे आहात?",meaning:"आप कहाँ खड़े हैं?",active:true,order:1},
+  {category:"पिकअप",hindi:"मैं गेट के पास हूँ।",marathi:"मी गेटजवळ आहे.",meaning:"मैं गेट के पास हूँ।",active:true,order:2},
+  {category:"डेस्टिनेशन",hindi:"आपको कहाँ जाना है?",marathi:"तुम्हाला कुठे जायचं आहे?",meaning:"आपको कहाँ जाना है?",active:true,order:1},
+  {category:"डेस्टिनेशन",hindi:"कौन सा रास्ता लेना है?",marathi:"कोणता रस्ता घ्यायचा?",meaning:"कौन सा रास्ता लेना है?",active:true,order:2},
+  {category:"पेमेंट",hindi:"कैश देंगे या ऑनलाइन?",marathi:"रोख पैसे देणार का ऑनलाइन?",meaning:"नकद देंगे या ऑनलाइन?",active:true,order:1},
+  {category:"पेमेंट",hindi:"ऑनलाइन पेमेंट हो गया है।",marathi:"ऑनलाइन पेमेंट झालं आहे.",meaning:"ऑनलाइन पेमेंट हो गया है।",active:true,order:2},
+  {category:"ट्रैफिक",hindi:"बहुत ट्रैफिक है।",marathi:"खूप ट्रॅफिक आहे.",meaning:"बहुत ट्रैफिक है।",active:true,order:1},
+  {category:"ट्रैफिक",hindi:"थोड़ा समय लगेगा।",marathi:"थोडा वेळ लागेल.",meaning:"थोड़ा समय लगेगा।",active:true,order:2},
+  {category:"रुकना",hindi:"कृपया थोड़ा इंतज़ार कीजिए।",marathi:"कृपया थोडं थांबा.",meaning:"कृपया थोड़ा इंतज़ार करें।",active:true,order:1},
+  {category:"रुकना",hindi:"मैं पाँच मिनट में आता हूँ।",marathi:"मी पाच मिनिटांत येतो.",meaning:"मैं पाँच मिनट में आता हूँ।",active:true,order:2}
+];
+
+let data = [], activeCategory = "सभी", selected = null, voices = [];
+
+function normalizeBool(v){
+  const s = String(v ?? "").trim().toLowerCase();
+  return !(s==="false" || s==="0" || s==="no" || s==="inactive");
+}
+function csvParse(text){
+  const rows=[]; let row=[], cell="", quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(c==='"' && quoted && n==='"'){cell+='"';i++;continue}
+    if(c==='"'){quoted=!quoted;continue}
+    if(c===',' && !quoted){row.push(cell);cell="";continue}
+    if((c==='\n'||c==='\r') && !quoted){
+      if(c==='\r'&&n==='\n') i++;
+      row.push(cell);cell="";
+      if(row.some(x=>x.trim()!=="")) rows.push(row);
+      row=[];continue;
+    }
+    cell+=c;
+  }
+  if(cell!==""||row.length){row.push(cell); if(row.some(x=>x.trim()!==""))rows.push(row)}
+  if(!rows.length)return [];
+  const headers=rows[0].map(x=>x.trim().toLowerCase());
+  return rows.slice(1).map(r=>{
+    const o={}; headers.forEach((h,i)=>o[h]=(r[i]??"").trim()); return o;
+  }).filter(o=>o.hindi && o.marathi).map(o=>({
+    category:o.category||"अन्य", hindi:o.hindi, marathi:o.marathi,
+    meaning:o.meaning||"", active:normalizeBool(o.active), order:Number(o.order)||9999
+  }));
+}
+async function loadData(){
+  const notice=document.getElementById("notice");
+  if(!SHEET_CSV_URL || SHEET_CSV_URL.includes("PASTE_YOUR")){
+    data=SAMPLE_DATA; notice.textContent="अभी Demo phrases दिख रहे हैं। Google Sheet जोड़ने के बाद यही स्क्रीन आपकी live phrase list दिखाएगी।";
+  }else{
+    try{
+      const r=await fetch(SHEET_CSV_URL,{cache:"no-store"});
+      if(!r.ok) throw new Error("Sheet fetch failed");
+      const parsed=csvParse(await r.text()).filter(x=>x.active);
+      if(!parsed.length) throw new Error("No active rows");
+      data=parsed; notice.textContent="Google Sheet से phrases अपडेट किए गए हैं।";
+    }catch(e){
+      data=SAMPLE_DATA; notice.textContent="Google Sheet अभी उपलब्ध नहीं है। Demo phrases दिखाए जा रहे हैं।";
+    }
+  }
+  data=data.filter(x=>x.active!==false).sort((a,b)=>a.order-b.order);
+  render();
+}
+function render(){
+  const cats=["सभी",...new Set(data.map(x=>x.category))];
+  const catEl=document.getElementById("categories");
+  catEl.innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?'active':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join("");
+  catEl.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{activeCategory=b.dataset.cat;render()});
+  const q=document.getElementById("search").value.trim().toLowerCase();
+  const shown=data.filter(x=>(activeCategory==="सभी"||x.category===activeCategory) && (!q || (x.hindi+" "+x.marathi+" "+x.meaning).toLowerCase().includes(q)));
+  document.getElementById("count").textContent=`${shown.length} वाक्य`;
+  const el=document.getElementById("phrases");
+  if(!shown.length){el.innerHTML='<div class="empty">कोई वाक्य नहीं मिला।</div>';return}
+  el.innerHTML=shown.map((x,i)=>`
+    <button class="phrase" data-i="${data.indexOf(x)}">
+      <div><div class="hindi">${esc(x.hindi)}</div><div class="meta">${esc(x.category)}</div></div>
+      <span class="speak">🔊</span>
+    </button>`).join("");
+  el.querySelectorAll(".phrase").forEach(b=>b.onclick=()=>openPhrase(data[Number(b.dataset.i)]));
+}
+function openPhrase(x){
+  selected=x;
+  document.getElementById("panelHindi").textContent=x.hindi;
+  document.getElementById("panelMr").textContent=x.marathi;
+  document.getElementById("panelMeaning").textContent=x.meaning||"";
+  document.getElementById("overlay").classList.add("show");
+  speakMarathi(x.marathi);
+}
+function loadVoices(){
+  voices=speechSynthesis.getVoices();
+  updateVoiceInfo();
+}
+function chooseVoice(){
+  const mr=voices.filter(v=>/^mr(-|_)/i.test(v.lang));
+  const maleWords=/male|man|ravi|hemant|aditya|amol|suresh|mohan|rahul|vikas|anil/i;
+  return mr.find(v=>maleWords.test(v.name)) || mr[0] ||
+         voices.find(v=>/^hi(-|_)/i.test(v.lang) && maleWords.test(v.name)) ||
+         voices.find(v=>/^hi(-|_)/i.test(v.lang)) || null;
+}
+function speakMarathi(text){
+  if(!("speechSynthesis" in window)){alert("इस browser में voice playback उपलब्ध नहीं है।");return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const v=chooseVoice();
+  u.lang=v?.lang || "mr-IN";
+  if(v)u.voice=v;
+  u.rate=.88; u.pitch=.92; u.volume=1;
+  speechSynthesis.speak(u);
+  updateVoiceInfo();
+}
+function updateVoiceInfo(){
+  const v=chooseVoice();
+  document.getElementById("voiceInfo").textContent=v
+    ? `Voice: ${v.name} • ${v.lang}`
+    : "Marathi voice device/browser पर उपलब्ध होने पर इस्तेमाल होगी।";
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+document.getElementById("search").addEventListener("input",render);
+document.getElementById("refresh").onclick=loadData;
+document.getElementById("closeBtn").onclick=()=>{speechSynthesis.cancel();document.getElementById("overlay").classList.remove("show")};
+document.getElementById("speakBtn").onclick=()=>selected&&speakMarathi(selected.marathi);
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")document.getElementById("closeBtn").click()});
+if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=loadVoices;
+loadVoices();
+loadData();
+</script>
+</body>
+</html>
